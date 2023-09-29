@@ -14,3 +14,5 @@ add_executable(dumplib ${SRC_FILES})
 if(NOT MSVC)
 	target_compile_options(dumplib PUBLIC -Wall -Werror=cast-function-type -Wno-expansion-to-defined -Wunused-parameter -Wtype-limits -Wextra -Wconversion)
 endif()
+
+target_link_options(dumplib PUBLIC -lbfd)
