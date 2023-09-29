@@ -23,8 +23,9 @@ static void print_symbols(bfd* b) {
 
     auto count = bfd_read_minisymbols(b, 0, (void**)&ptr, &size);
 
-    cout << "---" << endl;
-    // FIXME - print archive filename
+    // FIXME - get DLL name from .idata?
+
+    auto fn = bfd_get_filename(b);
 
     if (count <= 0)
         return;
@@ -44,7 +45,7 @@ static void print_symbols(bfd* b) {
 
         bfd_get_symbol_info(b, sym, &info);
 
-        cout << format("{} {}\n", info.type, info.name);
+        cout << format("{} {} {}\n", fn, info.type, info.name);
 
         // FIXME - only T (not .text)
 
