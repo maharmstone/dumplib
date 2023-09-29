@@ -20,12 +20,28 @@ static void do_file(const char* fn) {
     bfd_ptr b{bfd_openr(fn, nullptr)};
 
     if (!b)
-        throw runtime_error("bfd_openr failed");
+        throw runtime_error("bfd_openr failed"); // FIXME - include error
 
     if (!bfd_check_format(b.get(), bfd_archive))
         throw runtime_error("not an archive");
 
-    // FIXME
+    bfd_ptr ar;
+
+    while (true) {
+        if (bfd* tmp = bfd_openr_next_archived_file(b.get(), ar.get()); tmp)
+            ar.reset(tmp);
+        else {
+            if (bfd_get_error() == bfd_error_no_more_archived_files)
+                break;
+
+            throw runtime_error("bfd_openr_next_archived_file failed"); // FIXME - include error
+        }
+
+        if (!bfd_check_format_matches(ar.get(), bfd_object, nullptr))
+            throw runtime_error("file in archive was not an object");
+
+        // FIXME - print symbols
+    }
 }
 
 int main(int argc, char** argv) {
