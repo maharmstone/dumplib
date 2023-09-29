@@ -17,7 +17,7 @@ public:
 
 using bfd_ptr = unique_ptr<bfd*, bfd_closer>;
 
-static void print_symbols(bfd* b) {
+static void print_symbols(bfd* b, string_view archive) {
     uint8_t* ptr;
     unsigned int size;
 
@@ -45,9 +45,8 @@ static void print_symbols(bfd* b) {
 
         bfd_get_symbol_info(b, sym, &info);
 
-        cout << format("{} {} {}\n", fn, info.type, info.name);
-
-        // FIXME - only T (not .text)
+        if (info.type == 'T' && strcmp(info.name, ".text"))
+            cout << format("{}\t{}\t{}\t{}\n", archive, fn, info.type, info.name);
 
         ptr += size;
     }
@@ -77,7 +76,7 @@ static void do_file(const char* fn) {
         if (!bfd_check_format_matches(ar.get(), bfd_object, nullptr))
             throw runtime_error("file in archive was not an object");
 
-        print_symbols(ar.get());
+        print_symbols(ar.get(), fn);
     }
 }
 
