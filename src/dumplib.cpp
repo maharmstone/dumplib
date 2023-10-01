@@ -6,6 +6,20 @@
 
 using namespace std;
 
+class bfd_exception : public exception {
+public:
+    bfd_exception(string_view func) {
+        msg = string(func) + " failed (" + bfd_errmsg(bfd_get_error()) + ")";
+    }
+
+    const char* what() const noexcept override {
+        return msg.c_str();
+    }
+
+private:
+    string msg;
+};
+
 class bfd_closer {
 public:
     using pointer = bfd*;
@@ -32,7 +46,7 @@ static void print_symbols(bfd* b, string_view archive) {
 
     auto store = bfd_make_empty_symbol(b);
     if (!store)
-        throw runtime_error("bfd_make_empty_symbol failed");
+        throw bfd_exception("bfd_make_empty_symbol");
 
     unique_ptr<uint8_t> v{ptr};
 
@@ -41,7 +55,7 @@ static void print_symbols(bfd* b, string_view archive) {
 
         auto sym = bfd_minisymbol_to_symbol(b, false, ptr, store);
         if (!sym)
-            throw runtime_error("bfd_minisymbol_to_symbol failed");
+            throw bfd_exception("bfd_minisymbol_to_symbol");
 
         bfd_get_symbol_info(b, sym, &info);
 
@@ -56,7 +70,7 @@ static void do_file(const char* fn) {
     bfd_ptr b{bfd_openr(fn, nullptr)};
 
     if (!b)
-        throw runtime_error("bfd_openr failed"); // FIXME - include error
+        throw bfd_exception("bfd_openr");
 
     if (!bfd_check_format(b.get(), bfd_archive))
         throw runtime_error("not an archive");
@@ -70,11 +84,11 @@ static void do_file(const char* fn) {
             if (bfd_get_error() == bfd_error_no_more_archived_files)
                 break;
 
-            throw runtime_error("bfd_openr_next_archived_file failed"); // FIXME - include error
+            throw bfd_exception("bfd_openr_next_archived_file");
         }
 
         if (!bfd_check_format_matches(ar.get(), bfd_object, nullptr))
-            throw runtime_error("file in archive was not an object");
+            throw bfd_exception("bfd_check_format_matches");
 
         print_symbols(ar.get(), fn);
     }
