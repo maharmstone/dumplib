@@ -63,7 +63,7 @@ static void print_symbols(bfd* b, string_view archive) {
         bfd_get_symbol_info(b, sym, &info);
 
         if (info.type == 'T' && strcmp(info.name, ".text"))
-            cout << format("{}\t{}\t{}\t{}\n", archive, fn, info.type, info.name);
+            cout << format("{}\t{}\t{}\n", archive, fn, info.name);
 
         ptr += size;
     }
