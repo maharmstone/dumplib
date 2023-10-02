@@ -35,6 +35,9 @@ static void print_symbols(bfd* b, string_view archive) {
     uint8_t* ptr;
     unsigned int size;
 
+    if (!(bfd_get_file_flags(b) & HAS_SYMS))
+        return;
+
     auto count = bfd_read_minisymbols(b, 0, (void**)&ptr, &size);
 
     // FIXME - get DLL name from .idata?
@@ -78,6 +81,8 @@ static void do_file(const char* fn) {
     bfd_ptr ar;
 
     while (true) {
+        char** matching;
+
         if (bfd* tmp = bfd_openr_next_archived_file(b.get(), ar.get()); tmp)
             ar.reset(tmp);
         else {
@@ -87,8 +92,29 @@ static void do_file(const char* fn) {
             throw bfd_exception("bfd_openr_next_archived_file");
         }
 
-        if (!bfd_check_format_matches(ar.get(), bfd_object, nullptr))
-            throw bfd_exception("bfd_check_format_matches");
+        if (!bfd_check_format_matches(ar.get(), bfd_object, &matching)) {
+            bool pe_i386 = false;
+
+            if (bfd_get_error() != bfd_error_file_ambiguously_recognized)
+                throw bfd_exception("bfd_check_format_matches");
+
+            if (matching) {
+                unsigned int i = 0;
+                while (matching[i]) {
+                    if (!strcmp(matching[i], "pe-i386")) {
+                        pe_i386 = true;
+                        break;
+                    }
+
+                    i++;
+                }
+
+                free(matching);
+            }
+
+            if (!pe_i386)
+                throw bfd_exception("bfd_check_format_matches");
+        }
 
         print_symbols(ar.get(), fn);
     }
